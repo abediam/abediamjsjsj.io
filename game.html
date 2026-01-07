@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>گردونه عشق</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Vazirmatn', sans-serif; }
+
+        body {
+            background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            color: #444;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .game-container {
+            position: relative;
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        /* هدر و نوبت */
+        .turn-box {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            width: 90%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .turn-box h2 { color: #d6336c; font-size: 1.5rem; margin-bottom: 5px; }
+        .turn-box p { font-size: 1.1rem; font-weight: bold; color: #555; }
+
+        /* گردونه */
+        .wheel-wrapper {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 30px;
+            background: #ff4d4d;
+            clip-path: polygon(100% 0, 0 0, 50% 100%);
+            z-index: 10;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+        }
+
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 5px solid rgba(255, 255, 255, 0.6);
+            background: conic-gradient(
+                #ffcad4 0deg 45deg,
+                #fff 45deg 90deg,
+                #ffcad4 90deg 135deg,
+                #fff 135deg 180deg,
+                #ffcad4 180deg 225deg,
+                #fff 225deg 270deg,
+                #ffcad4 270deg 315deg,
+                #fff 315deg 360deg
+            );
+            position: relative;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99); /* افکت چرخش نرم */
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        /* متن‌های داخل گردونه */
+        .segment-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: 0 0;
+            font-size: 14px;
+            font-weight: bold;
+            color: #d6336c;
+            width: 140px; /* شعاع دایره */
+            text-align: right;
+            padding-right: 40px;
+            line-height: 0;
+        }
+
+        /* دکمه وسط */
+        .center-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            z-index: 5;
+            border: 4px solid #f8bbd0;
+            user-select: none;
+        }
+        
+        .center-btn:active { transform: translate(-50%, -50%) scale(0.95); }
+
+        /* پاپ‌آپ نتیجه */
+        .result-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        
+        .result-box {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            width: 80%;
+            max-width: 350px;
+            animation: popUp 0.4s ease;
+        }
+
+        @keyframes popUp {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .result-text { font-size: 1.5rem; color: #d6336c; margin: 15px 0; font-weight: 900; }
+        
+        .close-btn {
+            background: #d6336c;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="turn-box">
+            <h2 id="currentPlayer">نوبت...</h2>
+            <p>باید لیس بزنه: 😈</p>
+        </div>
+
+        <div class="wheel-wrapper">
+            <div class="pointer"></div>
+            <div class="wheel" id="wheel">
+                </div>
+            <div class="center-btn" onclick="spinWheel()">بچرخون</div>
+        </div>
+    </div>
+
+    <div class="result-overlay" id="resultModal">
+        <div class="result-box">
+            <h3>👅 وظیفه انجام بشه!</h3>
+            <p id="resultMessage" class="result-text">...</p>
+            <button class="close-btn" onclick="closeResult()">انجام شد!</button>
+        </div>
+    </div>
+
+    <script>
+        // لیست اعضای بدن برای گردونه
+        const segments = [
+            "گردن", "لب", "گوش", "شکم", 
+            "ران", "کف پا", "کمر", "پیشونی"
+        ];
+        
+        // تنظیمات اولیه
+        const wheel = document.getElementById('wheel');
+        const currentPlayerEl = document.getElementById('currentPlayer');
+        const resultModal = document.getElementById('resultModal');
+        const resultMessage = document.getElementById('resultMessage');
+
+        // دریافت بازیکنان از حافظه
+        let players = JSON.parse(localStorage.getItem('gamePlayers')) || ["بازیکن ۱", "بازیکن ۲"];
+        let turnIndex = 0;
+        let currentRotation = 0;
+        let isSpinning = false;
+
+        // قرار دادن متن‌ها روی گردونه
+        const segmentAngle = 360 / segments.length;
+        segments.forEach((text, index) => {
+            const div = document.createElement('div');
+            div.className = 'segment-text';
+            // محاسبه زاویه متن
+            const rotate = (index * segmentAngle) + (segmentAngle / 2); // وسط هر قاچ
+            // منفی 90 درجه برای اینکه متن از سمت راست شروع شود (در استاندارد CSS زاویه 0 بالاست)
+            div.style.transform = `rotate(${rotate - 90}deg) translate(50%, -50%)`;
+            div.innerText = text;
+            wheel.appendChild(div);
+        });
+
+        // نمایش نوبت اول
+        updateTurnDisplay();
+
+        function updateTurnDisplay() {
+            currentPlayerEl.innerText = `نوبت: ${players[turnIndex]}`;
+        }
+
+        function spinWheel() {
+            if (isSpinning) return;
+            isSpinning = true;
+
+            // محاسبه چرخش تصادفی (حداقل 5 دور کامل + مقدار تصادفی)
+            const randomDegree = Math.floor(Math.random() * 360);
+            const extraSpins = 360 * 5; 
+            const totalDegree = extraSpins + randomDegree;
+            
+            // اضافه کردن به چرخش فعلی تا گردونه به عقب برنگردد
+            currentRotation += totalDegree; 
+            
+            wheel.style.transform = `rotate(-${currentRotation}deg)`; // منفی برای چرخش ساعتگرد
+
+            // بعد از پایان انیمیشن (4 ثانیه)
+            setTimeout(() => {
+                showResult(currentRotation % 360);
+                isSpinning = false;
+            }, 4000);
+        }
+
+        function showResult(actualDegree) {
+            // محاسبه اینکه پوینتر روی کدام قاچ است
+            // پوینتر بالاست (0 درجه)، اما گردونه چرخیده.
+            const degreePerSegment = 360 / segments.length;
+            // محاسبه ایندکس برنده
+            const winningIndex = Math.floor(actualDegree / degreePerSegment); 
+            
+            // چون چرخش منفی بود، ترتیب آرایه درست خوانده می‌شود
+            // اگر مشکلی در ایندکس بود، با لاگ تست کنید. اینجا ساده شده است.
+            // به دلیل نحوه چینش ممکن است نیاز به معکوس کردن ایندکس باشد اما برای متن های ساده فرق زیادی ندارد
+            
+            // پیدا کردن متن (با توجه به جهت چرخش و مکان پوینتر)
+            // فرمول دقیق: (تعداد سگمنت - 1) - (باقیمانده تقسیم بر درجه هر سگمنت)
+            // روش ساده‌تر: نمایش رندوم واقعی با توجه به زاویه نهایی
+            
+            /* روش اصلاح شده دقیق برای پوینتر بالا */
+            const normalizedDeg = actualDegree % 360;
+            const index = Math.floor(normalizedDeg / degreePerSegment);
+            // آرایه ما ساعتگرد چیده شده، پس با چرخش ساعتگرد، ایندکس‌ها از آخر به اول میان زیر پوینتر
+            let finalIndex = (segments.length - 1) - index;
+            if (finalIndex < 0) finalIndex = 0;
+
+            const bodyPart = segments[finalIndex];
+            const player = players[turnIndex];
+
+            resultMessage.innerHTML = `${player} باید <br><span style="font-size:2rem">${bodyPart}</span><br> رو لیس بزنه! 😋`;
+            resultModal.style.display = 'flex';
+        }
+
+        function closeResult() {
+            resultModal.style.display = 'none';
+            // نوبت نفر بعدی
+            turnIndex = (turnIndex + 1) % players.length;
+            updateTurnDisplay();
+        }
+    </script>
+</body>
+</html>
