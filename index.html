@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>بازی داغ - نسخه مهندسی!</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #ff0055;
+            --bg: #0a0a0c;
+            --gold: #f9bc60;
+            --text: #abd1c6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Vazirmatn', sans-serif; }
+
+        body {
+            background: var(--bg);
+            background: radial-gradient(circle, #1a1a1d 0%, #0a0a0c 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: var(--text);
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .header { margin-top: 15px; text-align: center; }
+        .score-container {
+            display: flex; gap: 10px; margin: 15px 0; width: 92vw; max-width: 400px;
+        }
+        .player-card {
+            flex: 1; background: rgba(255, 255, 255, 0.03);
+            padding: 10px; border-radius: 15px; text-align: center;
+            border: 1px solid rgba(255,255,255,0.1); transition: 0.3s;
+        }
+        .player-card.active { border-color: var(--primary); background: rgba(255, 0, 85, 0.15); box-shadow: 0 0 15px rgba(255, 0, 85, 0.2); }
+        .score-num { display: block; font-size: 1.6rem; font-weight: 900; color: var(--primary); }
+
+        .wheel-box {
+            position: relative; width: 85vw; height: 85vw;
+            max-width: 360px; max-height: 360px; margin: 15px 0;
+        }
+        .wheel {
+            width: 100%; height: 100%; border-radius: 50%;
+            border: 6px solid #222; position: relative;
+            transition: transform 4s cubic-bezier(0.1, 0, 0.1, 1);
+            background: #111; overflow: hidden;
+        }
+        .arrow {
+            position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 15px solid transparent;
+            border-right: 15px solid transparent; border-top: 30px solid var(--primary);
+            z-index: 100;
+        }
+        .spin-btn {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 60px; height: 60px; background: #fff; color: #000;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 900; z-index: 110; cursor: pointer; border: 3px solid var(--bg);
+        }
+
+        .seg {
+            position: absolute; width: 50%; height: 1px;
+            top: 50%; left: 50%; transform-origin: left center;
+        }
+        .seg-txt {
+            position: absolute; left: 35px; font-size: 7px;
+            font-weight: bold; white-space: nowrap; color: #777;
+        }
+
+        .popup {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.96);
+            display: none; justify-content: center; align-items: center;
+            z-index: 1000; padding: 20px;
+        }
+        .popup-content {
+            background: #fff; color: #000; width: 100%;
+            max-width: 320px; padding: 30px; border-radius: 25px; text-align: center;
+        }
+        .timer-circle { font-size: 3rem; font-weight: 900; color: var(--primary); margin: 10px 0; }
+        .action-btn {
+            padding: 16px; width: 100%; border: none; border-radius: 12px;
+            margin-top: 10px; font-weight: 900; font-size: 1rem;
+        }
+        .btn-done { background: #00ebc7; color: #000; }
+        .btn-skip { background: #eee; color: #888; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2 style="color: var(--gold)">🍓 بازی داغ مهندسی</h2>
+    </div>
+
+    <div class="score-container">
+        <div id="p0-card" class="player-card">
+            <span>آقا 🧔</span>
+            <span class="score-num" id="p0-score">0</span>
+        </div>
+        <div id="p1-card" class="player-card">
+            <span>خانم 👩</span>
+            <span class="score-num" id="p1-score">0</span>
+        </div>
+    </div>
+
+    <div class="wheel-box">
+        <div class="arrow"></div>
+        <div id="wheel" class="wheel"></div>
+        <div class="spin-btn" onclick="spin()">بچرخ</div>
+    </div>
+
+    <div class="popup" id="popup">
+        <div class="popup-content">
+            <p id="who-does" style="font-weight: bold; color: var(--primary);"></p>
+            <h2 id="what-to-do" style="margin: 15px 0; font-size: 1.4rem;"></h2>
+            <div class="timer-circle" id="timer">60</div>
+            <button class="action-btn btn-done" onclick="endTask(true)">اوکی، انجام شد 🔥</button>
+            <button class="action-btn btn-skip" onclick="endTask(false)">بی‌خیال / رد کردن ⏭️</button>
+        </div>
+    </div>
+
+    <script>
+        const tasks = [
+            "خوردن توت فرنگی از روی بدن طرف 🍓", 
+            "خوردن مهندس (به روش کاملاً خودمونی!) 👷‍♂️😋",
+            "خوردن لب‌ها (۱ دقیقه) 👄", "ماساژ کمر با روغن 💆", 
+            "بوسیدن لاله گوش 👂", "۳ تا اسپنک محکم 👋", 
+            "خوردن و مکیدن گردن 🔥", "بوسیدن تمام انگشتای دست 🖐️",
+            "درآوردن یکی از لباس‌ها 👙", "لیسیدن و بوسیدن ناف 🌀",
+            "گاز گرفتن ملایم شونه 🧛", "ماساژ دادن پاها 🦶",
+            "خوردن زبون همدیگه 👅", "نوازش ران‌ها 🦵",
+            "بوسیدن سینه از روی لباس 🍒", "کبود کردن یه نقطه 🟣",
+            "رقصیدن دونفره خیلی نزدیک 💃", "بوسیدن زیر بغل! 😬",
+            "۵ دقیقه بغل کردن سفت 🫂", "بوسیدن چشم‌ها 👀",
+            "لیسیدن لبه‌های گوش 👂", "گفتن یکی از فانتزیات 💎",
+            "خوردن سینه (۱ دقیقه) 🍓", "بوسیدن گودی کمر 🏹",
+            "برداشتن لباس زیر! 🔞", "لیسیدن گردن تا پایین 🌊",
+            "پوزیشن دلخواه خودت 😈", "بوسیدن زانوها 🦵",
+            "خوردن انگشتای پا 🦶", "ماساژ باسن با دست 👋",
+            "یه گاز محکم از لپ 🦷", "لیسیدن بازوها 👅",
+            "۱۰ بار بوسیدن سریع 💋", "بوسه فرانسوی داغ 💦",
+            "بوسیدن شکم و پهلوها 🤰", "درآوردن جوراب با دوندون 🦷",
+            "ماساژ سر 💆‍♂️", "پوچ! 🏳️", "دوباره بچرخ 🔄",
+            "طرف مقابلت یه دستور بده 🗣️", "بوسیدن کف دست‌ها ✋", 
+            "خوردن لب پایین (۳۰ ثانیه) 👄"
+        ];
+
+        let scores = [0, 0];
+        let turn = 0;
+        let lastIdx = -1;
+        let rotation = 0;
+        let timerClock;
+
+        function initWheel() {
+            const wheel = document.getElementById('wheel');
+            const step = 360 / tasks.length;
+            tasks.forEach((t, i) => {
+                const d = document.createElement('div');
+                d.className = 'seg';
+                d.style.transform = `rotate(${i * step}deg)`;
+                d.innerHTML = `<span class="seg-txt">${t}</span>`;
+                wheel.appendChild(d);
+            });
+            refreshUI();
+        }
+
+        function refreshUI() {
+            document.getElementById('p0-score').innerText = scores[0];
+            document.getElementById('p1-score').innerText = scores[1];
+            document.getElementById('p0-card').className = turn === 0 ? 'player-card active' : 'player-card';
+            document.getElementById('p1-card').className = turn === 1 ? 'player-card active' : 'player-card';
+        }
+
+        function spin() {
+            const step = 360 / tasks.length;
+            let newIdx;
+            do { newIdx = Math.floor(Math.random() * tasks.length); } while (newIdx === lastIdx);
+            lastIdx = newIdx;
+
+            const extra = 1800 + (Math.random() * 360);
+            const target = (tasks.length - newIdx) * step;
+            rotation += extra + (target - (rotation % 360));
+            document.getElementById('wheel').style.transform = `rotate(${rotation}deg)`;
+
+            setTimeout(() => { showResult(tasks[newIdx]); }, 4100);
+        }
+
+        function showResult(task) {
+            const pop = document.getElementById('popup');
+            document.getElementById('who-does').innerText = "نوبت: " + (turn === 0 ? "آقا 🧔" : "خانم 👩");
+            document.getElementById('what-to-do').innerText = task;
+            pop.style.display = 'flex';
+
+            let s = 60;
+            const tEl = document.getElementById('timer');
+            tEl.innerText = s;
+            clearInterval(timerClock);
+            timerClock = setInterval(() => {
+                s--; tEl.innerText = s;
+                if(s <= 0) clearInterval(timerClock);
+            }, 1000);
+        }
+
+        function endTask(win) {
+            clearInterval(timerClock);
+            if(win) scores[turn]++;
+            document.getElementById('popup').style.display = 'none';
+            if(!document.getElementById('what-to-do').innerText.includes("دوباره")) {
+                turn = turn === 0 ? 1 : 0;
+            }
+            refreshUI();
+        }
+
+        initWheel();
+    </script>
+</body>
+</html>
